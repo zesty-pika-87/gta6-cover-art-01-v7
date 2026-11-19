@@ -3,20 +3,81 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover Snap</title>
+<title>Cover Coast — GTA 6 style poster maker</title>
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <main class="app">
-  <section class="controls">
-    <h1>Cover Snap</h1>
-    <p>A photo and a caption, made into a square cover.</p>
-    <label>Photo <input id="photo" type="file" accept="image/*"></label>
-    <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
-    <button id="export" type="button">Export PNG 1080 x 1080</button>
-    <p id="status" role="status"></p>
+  <section class="controls" aria-label="Poster controls">
+    <header class="brand">
+      <h1>Cover Coast</h1>
+      <p>Foto + caption jadi cover art gaya poster GTA&nbsp;6.</p>
+    </header>
+
+    <div class="group">
+      <h2>1 · Layout</h2>
+      <div id="layouts" class="chips" role="group" aria-label="Layout"></div>
+    </div>
+
+    <div class="group">
+      <h2>2 · Foto</h2>
+      <p class="hint">Klik foto, lalu klik panel untuk menaruhnya. Drag panel untuk pan, scroll untuk zoom.</p>
+      <div id="photos" class="strip" role="group" aria-label="Photos"></div>
+      <div class="row">
+        <label class="upload">+ Tambah foto sendiri
+          <input id="upload" type="file" accept="image/*" hidden>
+        </label>
+        <button id="shuffle" type="button" class="ghost">Acak panel</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>3 · Warna</h2>
+      <div id="grades" class="swatches" role="group" aria-label="Colour grade"></div>
+      <label class="slider">Kekuatan grade
+        <input id="strength" type="range" min="0" max="100" value="70">
+      </label>
+    </div>
+
+    <div class="group">
+      <h2>4 · Huruf poster</h2>
+      <label>Judul <input id="title" type="text" maxlength="48" value="Cover Coast"></label>
+      <label>Subtitle <input id="subtitle" type="text" maxlength="48" value="welcome to leonida"></label>
+      <label>Ribbon <input id="badge" type="text" maxlength="20" value="Vice City"></label>
+      <label class="slider">Bintang
+        <input id="stars" type="range" min="0" max="5" step="1" value="5">
+        <output id="starsOut">5 / 5</output>
+      </label>
+    </div>
+
+    <div class="group">
+      <h2>5 · Efek</h2>
+      <div class="checks">
+        <label><input id="fx-sunburst" type="checkbox" checked> Sunburst</label>
+        <label><input id="fx-halftone" type="checkbox"> Halftone</label>
+        <label><input id="fx-vignette" type="checkbox" checked> Vignette</label>
+        <label><input id="fx-grain" type="checkbox" checked> Film grain</label>
+      </div>
+      <div class="row">
+        <button id="undo" type="button" class="ghost">↩ Undo</button>
+        <button id="redo" type="button" class="ghost">↪ Redo</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>6 · Export PNG</h2>
+      <div id="sizes" class="chips" role="group" aria-label="Export size"></div>
+      <div class="row">
+        <button id="exportOne" type="button" class="primary">Export PNG</button>
+        <button id="exportAll" type="button" class="ghost">Export 4 ukuran</button>
+      </div>
+      <p id="status" role="status"></p>
+    </div>
   </section>
-  <canvas id="cover" width="1080" height="1080" aria-label="The cover"></canvas>
+
+  <section class="stage" aria-label="Preview">
+    <canvas id="cover" width="720" height="720" aria-label="Poster preview"></canvas>
+  </section>
 </main>
 <script type="module" src="./src/main.js"></script>
 </body>
