@@ -1,7 +1,7 @@
 // Cover Coast editor — wires the controls, the preview canvas and the PNG
 // exports. Preview and export share drawCover, so the file matches the screen.
 import { drawCover, layoutRects, LAYOUTS, GRADES, SIZES } from './render.js';
-import { defaultState, panelsFor, History } from './state.js';
+import { defaultState, panelsFor, History, snapshot } from './state.js';
 import { runShot } from './shots.js';
 
 const $ = (id) => document.getElementById(id);
@@ -240,29 +240,49 @@ canvas.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 // --- text + effect controls -------------------------------------------------
+// History needs the PRE-edit snapshot: capture it on focus, push it on change.
 function bindText(id, key) {
+  let before = null;
+  $(id).addEventListener('focus', () => { before = snapshot(state); });
   $(id).addEventListener('input', (e) => {
+    if (!before) before = snapshot(state);
     state[key] = e.target.value;
     draw();
   });
-  $(id).addEventListener('change', () => { history.push(state); draw(); });
+  $(id).addEventListener('change', () => {
+    if (before) { history.push(before); before = null; }
+    draw();
+  });
 }
 bindText('title', 'title');
 bindText('subtitle', 'subtitle');
 bindText('badge', 'badge');
 
+let sliderBefore = null;
+const captureSlider = () => { sliderBefore = snapshot(state); };
+$('stars').addEventListener('focus', captureSlider);
+$('stars').addEventListener('pointerdown', captureSlider);
+$('strength').addEventListener('focus', captureSlider);
+$('strength').addEventListener('pointerdown', captureSlider);
+const pushSlider = () => {
+  if (sliderBefore) { history.push(sliderBefore); sliderBefore = null; }
+  draw();
+};
+
 $('stars').addEventListener('input', (e) => {
+  if (!sliderBefore) sliderBefore = snapshot(state);
   state.stars = Number(e.target.value);
   $('starsOut').textContent = `${state.stars} / 5`;
   draw();
 });
-$('stars').addEventListener('change', () => { history.push(state); draw(); });
+$('stars').addEventListener('change', pushSlider);
 
 $('strength').addEventListener('input', (e) => {
+  if (!sliderBefore) sliderBefore = snapshot(state);
   state.strength = Number(e.target.value) / 100;
   draw();
 });
-$('strength').addEventListener('change', () => { history.push(state); draw(); });
+$('strength').addEventListener('change', pushSlider);
 
 ['sunburst', 'halftone', 'vignette', 'grain'].forEach((key) => {
   $(`fx-${key}`).addEventListener('change', (e) => {
