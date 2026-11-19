@@ -62,11 +62,11 @@ export function layoutRects(layout, w, h) {
     }
     case 'tilted': {
       // Three polaroids, slightly rotated, over a dimmed full-bleed backdrop.
-      const pw = w * 0.52, ph = h * 0.42;
+      const pw = w * 0.50, ph = h * 0.38;
       return [
-        { x: w * 0.06, y: h * 0.05, w: pw, h: ph, rot: -0.10 },
-        { x: w * 0.42, y: h * 0.28, w: pw, h: ph, rot: 0.06 },
-        { x: w * 0.10, y: h * 0.55, w: pw, h: ph, rot: -0.04 },
+        { x: w * 0.06, y: h * 0.04, w: pw, h: ph, rot: -0.10 },
+        { x: w * 0.44, y: h * 0.25, w: pw, h: ph, rot: 0.06 },
+        { x: w * 0.10, y: h * 0.52, w: pw, h: ph, rot: -0.04 },
       ];
     }
     case 'stack': return [R(0, 0, 1, 1 / 3), R(0, 1 / 3, 1, 1 / 3), R(0, 2 / 3, 1, 1 / 3)].map(inset);
@@ -85,7 +85,23 @@ function drawPhotoInto(ctx, img, rect, ox, oy, zoom) {
   ctx.drawImage(img, cx - pw / 2, cy - ph / 2, pw, ph);
 }
 
-/** Fills a rect with the grade's 5-stop gradient, blended over the photo. */
+/** Wide strips (Story Stack) never decapitate a photo: blurred cover-fill
+    backdrop plus the whole photo fitted inside, so faces stay intact. */
+function drawStackPanel(ctx, img, rect, slot, grade, strength) {
+  if (!img) return;
+  const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+  ctx.save();
+  ctx.filter = 'blur(22px) brightness(0.72) saturate(1.15)';
+  drawPhotoInto(ctx, img, rect, slot.ox, slot.oy, 1);
+  ctx.filter = 'none';
+  const contain = Math.min(rect.w / iw, rect.h / ih) * slot.zoom;
+  const pw = iw * contain, ph = ih * contain;
+  const cx = rect.x + rect.w / 2 + slot.ox * rect.w;
+  const cy = rect.y + rect.h / 2 + slot.oy * rect.h;
+  ctx.drawImage(img, cx - pw / 2, cy - ph / 2, pw, ph);
+  ctx.restore();
+  gradeWash(ctx, rect, grade, strength);
+}
 function gradeWash(ctx, rect, grade, strength) {
   if (strength <= 0) return;
   const grad = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.h);
@@ -101,16 +117,18 @@ function gradeWash(ctx, rect, grade, strength) {
   ctx.restore();
 }
 
-/** Sunburst rays fanning from a point, deterministic from the seed. */
+/** Sunburst rays fanning from the top-right corner, deterministic from the seed.
+    Kept faint and high so the rays read as sky light, never as scratches
+    across a face. */
 function sunburst(ctx, w, h, seed, alpha) {
   const rng = mulberry32(seed * 7919 + 13);
-  const cx = w * 0.82, cy = h * 0.08;
+  const cx = w * 0.86, cy = h * 0.04;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = '#ffffff';
-  for (let i = 0; i < 14; i++) {
-    const a0 = Math.PI * (0.35 + rng() * 0.55) + i * 0.10;
-    const a1 = a0 + 0.02 + rng() * 0.05;
+  for (let i = 0; i < 10; i++) {
+    const a0 = Math.PI * 0.52 + i * 0.042 + rng() * 0.012;
+    const a1 = a0 + 0.014 + rng() * 0.02;
     const r = Math.max(w, h) * 1.4;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -340,12 +358,16 @@ export function drawCover(canvas, s, images) {
       ctx.clip();
       const slot = s.panels[i];
       const img = photoAt(i);
-      if (img) drawPhotoInto(ctx, img, r, slot.ox, slot.oy, slot.zoom);
-      else {
+      if (s.layout === 'stack' && img) {
+        drawStackPanel(ctx, img, r, slot, grade, s.strength);
+      } else if (img) {
+        drawPhotoInto(ctx, img, r, slot.ox, slot.oy, slot.zoom);
+        gradeWash(ctx, r, grade, s.strength);
+      } else {
         ctx.fillStyle = '#241243';
         ctx.fillRect(r.x, r.y, r.w, r.h);
+        gradeWash(ctx, r, grade, s.strength);
       }
-      gradeWash(ctx, r, grade, s.strength);
       ctx.restore();
       ctx.strokeStyle = 'rgba(255,255,255,0.14)';
       ctx.lineWidth = Math.max(1, w * 0.002);
@@ -354,7 +376,7 @@ export function drawCover(canvas, s, images) {
   }
 
   // Deterministic effects, identical in preview and every export.
-  if (s.effects.sunburst) sunburst(ctx, w, h, s.seed, 0.10);
+  if (s.effects.sunburst) sunburst(ctx, w, h, s.seed, 0.05);
   if (s.effects.halftone) halftone(ctx, w, h, s.seed, 0.16);
   if (s.effects.vignette) vignette(ctx, w, h);
   if (s.effects.grain) grain(ctx, w, h, s.seed, 0.10);

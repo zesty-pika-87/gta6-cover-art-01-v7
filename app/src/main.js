@@ -8,6 +8,10 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('cover');
 const statusEl = $('status');
 
+// Surface page errors for automated checks.
+window.__errors = [];
+window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
 let state = defaultState();
 const history = new History();
 const images = new Map(); // photo id -> HTMLImageElement
@@ -312,6 +316,17 @@ document.addEventListener('keydown', (e) => {
 
 $('exportOne').addEventListener('click', () => exportOne(exportSize));
 $('exportAll').addEventListener('click', exportAll);
+
+// Test hook: lets automated checks render exports and read state.
+window.__coverTest = {
+  state: () => state,
+  renderTo: (w, h) => {
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    drawCover(off, state, images);
+    return off.toDataURL('image/png');
+  },
+};
 
 // --- boot -------------------------------------------------------------------
 const shot = new URLSearchParams(location.search).get('shot');
